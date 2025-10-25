@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShapeType, Mode, Dimensions, Unit, Story } from './types';
+import { ShapeType, Mode, Dimensions, Unit, Story, Difficulty } from './types';
 import Controls from './components/Controls';
 import ShapeCanvas from './components/ShapeCanvas';
 import Explanation from './components/Explanation';
@@ -22,7 +22,7 @@ const loadState = <T,>(key: string): T | undefined => {
   }
 };
 
-const savedSettings = loadState<{ shape: ShapeType; mode: Mode; dimensions: Dimensions; unit: Unit }>(APP_STATE_KEY);
+const savedSettings = loadState<{ shape: ShapeType; mode: Mode; dimensions: Dimensions; unit: Unit; difficulty: Difficulty }>(APP_STATE_KEY);
 const savedStory = loadState<Story>(STORY_STATE_KEY);
 
 // Helper function to clean the JSON response from markdown blocks
@@ -34,6 +34,7 @@ const cleanJsonString = (str: string): string => {
 const App: React.FC = () => {
   const [shape, setShape] = useState<ShapeType>(savedSettings?.shape || ShapeType.Rectangle);
   const [mode, setMode] = useState<Mode>(savedSettings?.mode || Mode.Area);
+  const [difficulty, setDifficulty] = useState<Difficulty>(savedSettings?.difficulty || Difficulty.Easy);
   const [dimensions, setDimensions] = useState<Dimensions>(savedSettings?.dimensions || { width: 10, height: 8 });
   const [unit, setUnit] = useState<Unit>(savedSettings?.unit || Unit.CM);
   
@@ -43,12 +44,12 @@ const App: React.FC = () => {
 
   useEffect(() => {
     try {
-      const stateToSave = { shape, mode, dimensions, unit };
+      const stateToSave = { shape, mode, dimensions, unit, difficulty };
       localStorage.setItem(APP_STATE_KEY, JSON.stringify(stateToSave));
     } catch (err) {
       console.error("No s'ha pogut desar la configuració a localStorage:", err);
     }
-  }, [shape, mode, dimensions, unit]);
+  }, [shape, mode, dimensions, unit, difficulty]);
 
   useEffect(() => {
     try {
@@ -80,9 +81,16 @@ const App: React.FC = () => {
     setCurrentStory(null);
     localStorage.removeItem(STORY_STATE_KEY);
 
+    const difficultyDescriptions = {
+        [Difficulty.Easy]: "Utilitza nombres enters petits (1-10) i principalment formes simples com quadrats i rectangles.",
+        [Difficulty.Medium]: "Utilitza nombres enters una mica més grans (1-20) i assegura't d'incloure triangles.",
+        [Difficulty.Hard]: "Utilitza nombres que poden incloure un decimal (p. ex., 8.5), escenaris més complexos, i problemes amb triangles que siguin un repte. La resposta correcta i les opcions també poden tenir decimals."
+    };
+
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const prompt = `Crea una història interactiva curta en català per a nens de primària sobre com calcular el ${mode.toLowerCase()} d'un ${shape.toLowerCase()}.
+      La història ha de tenir un nivell de dificultat '${difficulty}'. ${difficultyDescriptions[difficulty]}
       La història ha de tenir exactament 4 passos: un títol, una introducció, DOS exercicis pràctics amb dificultat creixent, i una conclusió.
       Cada exercici ha d'incloure dimensions, unitat, una resposta correcta i tres opcions incorrectes plausibles.
       Genera la sortida estrictament en el format JSON sol·licitat.`;
@@ -207,6 +215,8 @@ const App: React.FC = () => {
                           setShape={setShape}
                           mode={mode}
                           setMode={setMode}
+                          difficulty={difficulty}
+                          setDifficulty={setDifficulty}
                           dimensions={dimensions}
                           setDimensions={setDimensions}
                           unit={unit}
@@ -237,7 +247,7 @@ const App: React.FC = () => {
           </div>
 
           <div className="lg:mt-0">
-             <Quiz currentStory={currentStory} />
+             <Quiz currentStory={currentStory} difficulty={difficulty} />
           </div>
 
         </div>

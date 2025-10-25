@@ -1,11 +1,13 @@
 import React from 'react';
-import { ShapeType, Mode, Dimensions, Unit } from '../types';
+import { ShapeType, Mode, Dimensions, Unit, Difficulty } from '../types';
 
 interface ControlsProps {
   shape: ShapeType;
   setShape: (shape: ShapeType) => void;
   mode: Mode;
   setMode: (mode: Mode) => void;
+  difficulty: Difficulty;
+  setDifficulty: (difficulty: Difficulty) => void;
   dimensions: Dimensions;
   setDimensions: (dims: Dimensions) => void;
   unit: Unit;
@@ -51,7 +53,7 @@ const ModeToggle: React.FC<{
 );
 
 
-const Controls: React.FC<ControlsProps> = ({ shape, setShape, mode, setMode, dimensions, setDimensions, unit, setUnit }) => {
+const Controls: React.FC<ControlsProps> = ({ shape, setShape, mode, setMode, difficulty, setDifficulty, dimensions, setDimensions, unit, setUnit }) => {
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     const numValue = parseInt(value, 10);
@@ -74,12 +76,21 @@ const Controls: React.FC<ControlsProps> = ({ shape, setShape, mode, setMode, dim
       </div>
 
       <div>
-        <h3 className="text-lg font-bold text-slate-800 mb-3">2. Tria un càlcul</h3>
+        <h3 className="text-lg font-bold text-slate-800 mb-3">2. Tria la dificultat</h3>
+        <div className="flex gap-2">
+          <ControlButton onClick={() => setDifficulty(Difficulty.Easy)} isActive={difficulty === Difficulty.Easy} icon="fa-child">Fàcil</ControlButton>
+          <ControlButton onClick={() => setDifficulty(Difficulty.Medium)} isActive={difficulty === Difficulty.Medium} icon="fa-graduation-cap">Mitjà</ControlButton>
+          <ControlButton onClick={() => setDifficulty(Difficulty.Hard)} isActive={difficulty === Difficulty.Hard} icon="fa-brain">Difícil</ControlButton>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-lg font-bold text-slate-800 mb-3">3. Tria un càlcul</h3>
         <ModeToggle mode={mode} setMode={setMode}/>
       </div>
 
       <div>
-        <h3 className="text-lg font-bold text-slate-800 mb-3">3. Tria les unitats</h3>
+        <h3 className="text-lg font-bold text-slate-800 mb-3">4. Tria les unitats</h3>
         <div className="flex gap-2">
           <ControlButton onClick={() => setUnit(Unit.MM)} isActive={unit === Unit.MM}>{Unit.MM}</ControlButton>
           <ControlButton onClick={() => setUnit(Unit.CM)} isActive={unit === Unit.CM}>{Unit.CM}</ControlButton>
@@ -88,7 +99,7 @@ const Controls: React.FC<ControlsProps> = ({ shape, setShape, mode, setMode, dim
       </div>
 
       <div>
-        <h3 className="text-lg font-bold text-slate-800 mb-3">4. Ajusta les mides</h3>
+        <h3 className="text-lg font-bold text-slate-800 mb-3">5. Ajusta les mides</h3>
         <div className="space-y-4">
           <div className="text-sm">
             <label htmlFor="width" className="font-semibold text-slate-600 flex justify-between">

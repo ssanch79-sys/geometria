@@ -15,6 +15,12 @@ export enum Mode {
   Area = 'Àrea',
 }
 
+export enum Difficulty {
+  Easy = 'Fàcil',
+  Medium = 'Mitjà',
+  Hard = 'Difícil',
+}
+
 export interface Dimensions {
   width: number;
   height: number;

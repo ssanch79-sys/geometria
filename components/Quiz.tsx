@@ -1,18 +1,19 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ShapeType, Mode, QuizQuestion, Dimensions, Unit, Story } from '../types';
+import { ShapeType, Mode, QuizQuestion, Dimensions, Unit, Story, Difficulty } from '../types';
 import { GoogleGenAI, Modality } from "@google/genai";
 import QuizShapeDisplay from './QuizShapeDisplay';
 import { decode, decodeAudioData } from '../utils/audio';
 
 interface QuizProps {
   currentStory: Story | null;
+  difficulty: Difficulty;
 }
 
 function shuffleArray<T,>(array: T[]): T[] {
   return array.sort(() => Math.random() - 0.5);
 }
 
-const Quiz: React.FC<QuizProps> = ({ currentStory }) => {
+const Quiz: React.FC<QuizProps> = ({ currentStory, difficulty }) => {
   const [question, setQuestion] = useState<QuizQuestion | null>(null);
   const [feedback, setFeedback] = useState<{ message: string; isCorrect: boolean } | null>(null);
   const [answered, setAnswered] = useState<boolean>(false);
@@ -25,15 +26,32 @@ const Quiz: React.FC<QuizProps> = ({ currentStory }) => {
     setIsIconLoading(true);
     setShapeIconUrl(null);
 
-    const shapes = [ShapeType.Square, ShapeType.Rectangle, ShapeType.Triangle];
+    const configs = {
+      [Difficulty.Easy]: { maxDim: 10, useDecimals: false, shapes: [ShapeType.Square, ShapeType.Rectangle] },
+      [Difficulty.Medium]: { maxDim: 20, useDecimals: false, shapes: [ShapeType.Square, ShapeType.Rectangle, ShapeType.Triangle] },
+      [Difficulty.Hard]: { maxDim: 25, useDecimals: true, shapes: [ShapeType.Square, ShapeType.Rectangle, ShapeType.Triangle] },
+    };
+    
+    const config = configs[difficulty];
+
+    const shapes = forceShape ? [forceShape] : config.shapes;
     const modes = [Mode.Perimeter, Mode.Area];
     const units = [Unit.MM, Unit.CM, Unit.M];
 
     const shape = forceShape || shapes[Math.floor(Math.random() * shapes.length)];
     const mode = forceMode || modes[Math.floor(Math.random() * modes.length)];
     const unit = units[Math.floor(Math.random() * units.length)];
-    const width = Math.floor(Math.random() * 10) + 1;
-    const height = Math.floor(Math.random() * 10) + 1;
+    
+    const getRandomDim = () => {
+        const base = Math.floor(Math.random() * config.maxDim) + 1;
+        if (config.useDecimals && Math.random() > 0.5) {
+            return base + 0.5;
+        }
+        return base;
+    }
+
+    const width = getRandomDim();
+    const height = getRandomDim();
     const dims: Dimensions = { width: shape === ShapeType.Square ? width : width, height: shape === ShapeType.Square ? width : height };
 
     let correctAnswer: number;
@@ -46,14 +64,21 @@ const Quiz: React.FC<QuizProps> = ({ currentStory }) => {
           correctAnswer = (dims.width * dims.height) / 2;
       } else {
           const side = Math.sqrt(Math.pow(dims.width/2, 2) + Math.pow(dims.height, 2));
-          correctAnswer = parseFloat((2 * side + dims.width).toFixed(1));
+          correctAnswer = 2 * side + dims.width;
       }
     }
+    
+    correctAnswer = parseFloat(correctAnswer.toFixed(1));
 
     const options = new Set<number>([correctAnswer]);
     while (options.size < 4) {
-      const wrongAnswer = correctAnswer + (Math.floor(Math.random() * 10) + 1) * (Math.random() > 0.5 ? 1 : -1);
-      if (wrongAnswer > 0 && wrongAnswer !== correctAnswer) {
+      const offset = (Math.floor(Math.random() * 10) + 1) * (Math.random() > 0.5 ? 1 : -1);
+      let wrongAnswer = correctAnswer + offset;
+      if (config.useDecimals && Math.random() > 0.3) {
+          wrongAnswer = parseFloat((wrongAnswer - 0.5 + Math.random()).toFixed(1));
+      }
+      
+      if (wrongAnswer > 0 && wrongAnswer !== correctAnswer && options.size < 4) {
         options.add(parseFloat(wrongAnswer.toFixed(1)));
       }
     }
@@ -68,14 +93,10 @@ const Quiz: React.FC<QuizProps> = ({ currentStory }) => {
     });
     setFeedback(null);
     setAnswered(false);
-  }, []);
+  }, [difficulty]);
 
   useEffect(() => {
-    if (currentStory) {
-      generateQuestion(currentStory.shape, currentStory.mode);
-    } else {
-      generateQuestion();
-    }
+    generateQuestion(currentStory?.shape, currentStory?.mode);
   }, [currentStory, generateQuestion]);
 
   useEffect(() => {
